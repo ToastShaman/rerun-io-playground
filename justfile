@@ -1,5 +1,11 @@
 rerun:
     pdm run rerun
 
-video:
-    pdm run capture_video.py
+video_capture *ARGS:
+    pdm run video_capture.py -- {{ARGS}}
+
+video_processing:
+    pdm run video_processing.py
+
+fmt:
+    pdm run ruff format *.py
