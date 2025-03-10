@@ -85,11 +85,9 @@ async def callback_factory(zmq_address, transcription_queue):
             results = zmq_socket.recv_json()
 
             # Log the transcript
-            results = (
-                " ".join([item["text"] for item in results["transcription"]])
-                .lstrip()
-                .rstrip()
-            )
+            results = " ".join(
+                [item["text"] for item in results["transcription"]]
+            ).strip()
 
             # Add the transcript to the list
             captured_transcripts.append(results)
