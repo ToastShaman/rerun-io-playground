@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:0a45d78296a24a29077757bc28523270fa156e681fe8718673b3030570be1ef6"
+content_hash = "sha256:e629f71b3f5ce6ab508c4869a62d73b35b55d49d7b063635b32ca5cb5345235d"
 
 [[metadata.targets]]
 requires_python = "==3.13.*"
@@ -249,6 +249,27 @@ files = [
     {file = "kiwisolver-1.4.8-cp313-cp313t-musllinux_1_2_s390x.whl", hash = "sha256:577facaa411c10421314598b50413aa1ebcf5126f704f1e5d72d7e4e9f020d90"},
     {file = "kiwisolver-1.4.8-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:be4816dc51c8a471749d664161b434912eee82f2ea66bd7628bd14583a833e85"},
     {file = "kiwisolver-1.4.8.tar.gz", hash = "sha256:23d5f023bdc8c7e54eb65f03ca5d5bb25b601eac4d7f1a042888a1f45237987e"},
+]
+
+[[package]]
+name = "lapx"
+version = "0.5.11.post1"
+requires_python = ">=3.7"
+summary = "Linear Assignment Problem solver (LAPJV/LAPMOD)."
+groups = ["default"]
+dependencies = [
+    "numpy>=1.21.6",
+]
+files = [
+    {file = "lapx-0.5.11.post1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:d7f089a3cc3197c4de782c856f6ad2320fc00f6d0f33fd0ecf208b1d40467c87"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:92b137c5231e8a44a96eafe78717e7b2df12bc48a1189889aa4481b3d7842fb4"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c91f23f6a63494f9f06917e4d86eacabee2e4206a0deb0e336b3ceadcb9207fe"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e22d3b2430aea6eb171c1f5c5505ab3f81bf9c3ed48c55500c204c4e09342a96"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:965158a3d31f3d92e37e2ae7a27b8b2422af75bfcfab8779765ece3d3b338a73"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8c79fdbbac5e89ddcd97813f0a0390bc939dd05d38c493a4e1b2cabaa2ec123b"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-win_amd64.whl", hash = "sha256:33aa658e63f7022280db130fbb703cf6989bb1159d87b5fe3ed8f2af91ba75df"},
+    {file = "lapx-0.5.11.post1-cp313-cp313-win_arm64.whl", hash = "sha256:7be8e1bc4c7ae816f447dc7689cfc7c912d0d8667ad6c9d84f41738d6a47dea9"},
+    {file = "lapx-0.5.11.post1.tar.gz", hash = "sha256:f69d0b496e3cf0f312e660af835891349be43624d8e5acae831f51ba1c0a9568"},
 ]
 
 [[package]]

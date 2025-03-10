@@ -7,6 +7,9 @@ import rerun.blueprint as rrb
 
 
 def capture_video(video_device_index, num_frames, callback):
+    """
+    Capture video from a camera and process each frame with a callback function.
+    """
     cap = cv2.VideoCapture(video_device_index)
 
     if not cap.isOpened():
@@ -33,6 +36,9 @@ def capture_video(video_device_index, num_frames, callback):
 
 
 def callback_factory(zmq_address):
+    """
+    Create a callback function that processes each frame from the camera.
+    """
     context = zmq.Context()
     zmq_socket = context.socket(zmq.REQ)
     zmq_socket.connect(zmq_address)
@@ -53,31 +59,32 @@ def callback_factory(zmq_address):
             rr.EncodedImage(contents=jpeg_frame, media_type="image/jpeg"),
         )
 
-        # Send the image to the ZeroMQ server
+        # Send the image to the ZeroMQ server for processing
         zmq_socket.send(jpeg_frame.tobytes())
 
         # Wait for the reply
         message = zmq_socket.recv()
 
         # Draw bounding boxes
-        detections = json.loads(message)
-        for det in detections["detections"]:
-            x1, y1, x2, y2 = det["x1"], det["y1"], det["x2"], det["y2"]
-            conf = det["conf"]
-            cls = det["class"]
+        results = json.loads(message)
+        for r in results["tracking"]:
+            x1, y1, x2, y2 = r["x1"], r["y1"], r["x2"], r["y2"]
+            conf = r["conf"]
+            cls = r["class"]
+            track_id = r["track_id"]
 
             if int(cls) == 0:  # Class 0 is 'person' in COCO dataset
                 # Draw the bounding box
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                # Display label (confidence + class)
-                label = f"Class {cls}: {conf:.2f}"
+                # Display label
+                label = f"ID {track_id}: {conf:.2f}"
                 cv2.putText(
                     frame,
                     label,
                     (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
+                    2,
                     (0, 255, 0),
                     2,
                 )
