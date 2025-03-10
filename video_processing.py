@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import cv2
 import numpy as np
@@ -29,12 +28,12 @@ def main(zmq_address):
             frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             # Run YOLO detection
-            detections = model(frame)
+            results = model(frame)
 
             # Process YOLO results to extract bounding boxes and information
             detections_data = []
-            for det in detections:
-                for box in det.boxes:
+            for result in results:
+                for box in result.boxes:
                     # Extract the bounding box coordinates
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
 
@@ -54,14 +53,15 @@ def main(zmq_address):
                     detections_data.append(response)
 
             # Run YOLO tracker
-            tracked_objects = model.track(
-                frame, persist=True, tracker=YOLO_TRACKER_PATH
-            )
+            results = model.track(frame, persist=True, tracker=YOLO_TRACKER_PATH)
 
             # Process YOLO results to extract bounding boxes and information
             tracking_data = []
-            for obj in tracked_objects:
-                for box in obj.boxes:
+            for result in results:
+                boxes = result.boxes
+                if boxes.is_track:
+                    box = boxes[0]
+
                     # Extract the track ID
                     track_id = int(box.id[0].item())
 
@@ -85,9 +85,7 @@ def main(zmq_address):
                     tracking_data.append(response)
 
             # Send results as JSON
-            responses = {"detections": detections_data, "tracking": tracking_data}
-
-            print(json.dumps(responses))
+            responses = {"detections": detections_data, "trackings": tracking_data}
 
             socket.send_json(responses)
     finally:

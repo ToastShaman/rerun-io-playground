@@ -11,12 +11,15 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 CHUNK = 1024
-RECORD_SECONDS = 5
+RECORD_SECONDS = 10
 
 captured_transcripts = []
 
 
 def capture_audio(audio_device_index, transcription_queue, loop):
+    """
+    Capture audio from a microphone and put it into a transcription queue.
+    """
     audio = pyaudio.PyAudio()
 
     try:
@@ -52,9 +55,9 @@ def capture_audio(audio_device_index, transcription_queue, loop):
             # Get the binary audio data
             binary_audio_data = audio_buffer.getvalue()
 
-            # Add the audio data to the transcription queue
+            # Put the audio data into the transcription queue
             asyncio.run_coroutine_threadsafe(
-                transcription_queue.put(binary_audio_data), loop
+                transcription_queue.put_nowait(binary_audio_data), loop
             )
     finally:
         stream.stop_stream()
@@ -63,29 +66,33 @@ def capture_audio(audio_device_index, transcription_queue, loop):
 
 
 async def callback_factory(zmq_address, transcription_queue):
+    """
+    Create a callback function that processes each audio frame.
+    """
     context = zmq.Context()
     zmq_socket = context.socket(zmq.REQ)
     zmq_socket.connect(zmq_address)
 
     async def callback():
         while True:
+            # Get the audio data from the transcription queue
             audio_data = await transcription_queue.get()
 
             # Send the audio data to the ZeroMQ server
             zmq_socket.send(audio_data)
 
             # Wait for the reply
-            transcript = zmq_socket.recv_json()
+            results = zmq_socket.recv_json()
 
             # Log the transcript
-            transcript = (
-                " ".join([item["text"] for item in transcript["transcription"]])
+            results = (
+                " ".join([item["text"] for item in results["transcription"]])
                 .lstrip()
                 .rstrip()
             )
 
             # Add the transcript to the list
-            captured_transcripts.append(transcript)
+            captured_transcripts.append(results)
 
             # Log the transcript
             rr.log(
@@ -95,15 +102,16 @@ async def callback_factory(zmq_address, transcription_queue):
                 ),
             )
 
-            print(transcript.lstrip())
-
             transcription_queue.task_done()
 
     return zmq_socket, context, callback
 
 
 async def main(device, zmq_address):
+    rr.init("retail-analytics-demo", spawn=True)
+
     transcription_queue = asyncio.Queue()
+
     loop = asyncio.get_event_loop()
 
     try:
@@ -133,7 +141,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    rr.init("retail-analytics-demo", spawn=True)
 
     asyncio.run(main(args.device, args.zmq_address))

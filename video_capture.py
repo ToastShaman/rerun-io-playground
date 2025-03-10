@@ -3,6 +3,25 @@ import cv2
 import zmq
 import rerun as rr
 
+IS_A_PERSON = 0
+
+COLOURS = [
+    (247, 37, 133),
+    (181, 23, 158),
+    (114, 9, 183),
+    (86, 11, 173),
+    (72, 12, 168),
+    (58, 12, 163),
+    (63, 55, 201),
+    (67, 97, 238),
+    (72, 149, 239),
+    (76, 201, 240),
+]
+
+
+def pick_random_colour(id: int):
+    return COLOURS[id % len(COLOURS)]
+
 
 def capture_video(video_device_index, num_frames, callback):
     """
@@ -65,29 +84,32 @@ def callback_factory(zmq_address):
         zmq_socket.send(jpeg_frame.tobytes())
 
         # Wait for the reply
-        data = zmq_socket.recv_json()
+        results = zmq_socket.recv_json()
 
         # Draw bounding boxes
-        for r in data["tracking"]:
+        for r in results["trackings"]:
             x1, y1, x2, y2 = r["x1"], r["y1"], r["x2"], r["y2"]
             conf = r["conf"]
             cls = r["class"]
             track_id = r["track_id"]
 
-            if int(cls) == 0:  # Class 0 is 'person' in COCO dataset
+            if int(cls) == IS_A_PERSON:
+                colour = pick_random_colour(track_id)
+
                 # Draw the bounding box
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.rectangle(
+                    img=frame, pt1=(x1, y1), pt2=(x2, y2), color=colour, thickness=2
+                )
 
                 # Display label
-                label = f"ID {track_id}: {conf:.2f}"
                 cv2.putText(
-                    frame,
-                    label,
-                    (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    2,
-                    (0, 255, 0),
-                    2,
+                    img=frame,
+                    text=f"ID {track_id}: {conf:.2f}",
+                    org=(x1, y1 - 10),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=2,
+                    color=colour,
+                    thickness=2,
                 )
 
         # Encode frame with boxes as JPEG
@@ -107,6 +129,8 @@ def callback_factory(zmq_address):
 
 
 def main(device_idx, num_frames, zmq_address):
+    rr.init("retail-analytics-demo", spawn=True)
+
     zmq_socket, context, callback = callback_factory(zmq_address)
 
     try:
@@ -135,7 +159,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    rr.init("retail-analytics-demo", spawn=True)
 
     main(args.device, args.num_frames, args.zmq_address)
