@@ -1,8 +1,11 @@
 import argparse
+import os
 import cv2
 import numpy as np
 import zmq
 from ultralytics import YOLO
+
+YOLO_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "yolo11n.pt")
 
 
 def main():
@@ -20,7 +23,7 @@ def main():
     socket = context.socket(zmq.REP)
     socket.bind(args.zmq_address)
 
-    model = YOLO("yolov8n.pt")
+    model = YOLO(YOLO_MODEL_PATH)
 
     while True:
         jpeg_bytes = socket.recv()
