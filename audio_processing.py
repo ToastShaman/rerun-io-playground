@@ -20,10 +20,10 @@ def transcribe(binary_audio_data):
     with open(output_filename, "wb") as f:
         f.write(binary_audio_data)
 
-    return transcribe_with_whisper(output_filename)
+    return transcribe_with_whisper(timestamp, output_filename)
 
 
-def transcribe_with_whisper(filename):
+def transcribe_with_whisper(timestamp, filename):
     try:
         whisper_cmd = [
             "whisper-cli",
@@ -35,15 +35,22 @@ def transcribe_with_whisper(filename):
         ]
 
         # Run the whisper-cli command
-        subprocess.run(whisper_cmd, check=True)
+        subprocess.run(
+            whisper_cmd,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         # Read the JSON output
         json_output_filename = f"{filename}.json"
         with open(json_output_filename, "r") as f:
             json_data = json.load(f)
 
-        return json_data
+        # Add the timestamp to the JSON data
+        json_data["timestamp"] = timestamp
 
+        return json_data
     finally:
         os.remove(filename)
         os.remove(json_output_filename)
@@ -55,11 +62,12 @@ def main(zmq_address):
         socket = context.socket(zmq.REP)
         socket.bind(zmq_address)
 
+        print(f"Listening for audio data on {zmq_address}")
+
         while True:
             binary_audio_data = socket.recv()
             transcription = transcribe(binary_audio_data)
             socket.send_json(transcription)
-
     finally:
         socket.close()
         context.term()

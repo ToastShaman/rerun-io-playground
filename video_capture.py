@@ -1,44 +1,46 @@
 import argparse
-import json
 import cv2
-import rerun as rr
 import zmq
-import rerun.blueprint as rrb
+import rerun as rr
 
 
 def capture_video(video_device_index, num_frames, callback):
     """
     Capture video from a camera and process each frame with a callback function.
     """
-    cap = cv2.VideoCapture(video_device_index)
+    try:
+        cap = cv2.VideoCapture(video_device_index)
 
-    if not cap.isOpened():
-        raise Exception("Error: Could not open video capture.")
+        if not cap.isOpened():
+            raise Exception("Error: Could not open video capture.")
 
-    frame_nr = 0
+        frame_nr = 0
 
-    while cap.isOpened():
-        if num_frames and frame_nr >= num_frames:
-            break
+        while cap.isOpened():
+            if num_frames and frame_nr >= num_frames:
+                break
 
-        # Read the frame
-        ret, frame = cap.read()
-        if not ret:
-            raise Exception("Failed to receive frame from video capture.")
+            # Read the frame
+            ret, frame = cap.read()
+            if not ret:
+                raise Exception("Failed to receive frame from video capture.")
 
-        # Get the current frame time. On some platforms it always returns zero.
-        frame_time_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
+            # Get the current frame time. On some platforms it always returns zero.
+            frame_time_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
 
-        # process the image
-        callback(frame_time_ms, frame_nr, frame)
+            # process the image
+            callback(frame_time_ms, frame_nr, frame)
 
-        frame_nr += 1
+            frame_nr += 1
+    finally:
+        cap.release()
 
 
 def callback_factory(zmq_address):
     """
     Create a callback function that processes each frame from the camera.
     """
+
     context = zmq.Context()
     zmq_socket = context.socket(zmq.REQ)
     zmq_socket.connect(zmq_address)
@@ -63,11 +65,10 @@ def callback_factory(zmq_address):
         zmq_socket.send(jpeg_frame.tobytes())
 
         # Wait for the reply
-        message = zmq_socket.recv()
+        data = zmq_socket.recv_json()
 
         # Draw bounding boxes
-        results = json.loads(message)
-        for r in results["tracking"]:
+        for r in data["tracking"]:
             x1, y1, x2, y2 = r["x1"], r["y1"], r["x2"], r["y2"]
             conf = r["conf"]
             cls = r["class"]
@@ -102,10 +103,20 @@ def callback_factory(zmq_address):
             rr.EncodedImage(contents=jpeg_frame_with_boxes, media_type="image/jpeg"),
         )
 
-    return callback
+    return zmq_socket, context, callback
 
 
-def main():
+def main(device_idx, num_frames, zmq_address):
+    zmq_socket, context, callback = callback_factory(zmq_address)
+
+    try:
+        capture_video(device_idx, num_frames, callback)
+    finally:
+        zmq_socket.close()
+        context.term()
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Capture video from a camera")
     parser.add_argument(
         "--device",
@@ -123,29 +134,8 @@ def main():
         help="ZeroMQ server address (e.g., tcp://localhost:5555)",
     )
 
-    rr.script_add_args(parser)
-
     args = parser.parse_args()
 
     rr.init("retail-analytics-demo", spawn=True)
 
-    rr.script_setup(
-        args,
-        "retail-analytics-demo",
-        default_blueprint=rrb.Vertical(
-            rrb.Horizontal(
-                rrb.Spatial2DView(origin="/image/original", name="Video"),
-                rrb.Spatial2DView(origin="/image/yolo", name="YOLO Detector"),
-            ),
-        ),
-    )
-
-    callback = callback_factory(args.zmq_address)
-
-    capture_video(args.device, args.num_frames, callback)
-
-    rr.script_teardown(args)
-
-
-if __name__ == "__main__":
-    main()
+    main(args.device, args.num_frames, args.zmq_address)

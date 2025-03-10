@@ -4,6 +4,7 @@ import wave
 import zmq
 import pyaudio
 import asyncio
+import rerun as rr
 
 # Audio settings
 FORMAT = pyaudio.paInt16
@@ -11,6 +12,8 @@ CHANNELS = 1
 RATE = 16000
 CHUNK = 1024
 RECORD_SECONDS = 5
+
+captured_transcripts = []
 
 
 def capture_audio(audio_device_index, transcription_queue, loop):
@@ -67,11 +70,33 @@ async def callback_factory(zmq_address, transcription_queue):
     async def callback():
         while True:
             audio_data = await transcription_queue.get()
-            print("Sending audio data over ZMQ")
+
+            # Send the audio data to the ZeroMQ server
             zmq_socket.send(audio_data)
-            transcript = zmq_socket.recv()
-            transcript = ' '.join([item['text'] for item in transcript['transcription']])
-            print(transcript)
+
+            # Wait for the reply
+            transcript = zmq_socket.recv_json()
+
+            # Log the transcript
+            transcript = (
+                " ".join([item["text"] for item in transcript["transcription"]])
+                .lstrip()
+                .rstrip()
+            )
+
+            # Add the transcript to the list
+            captured_transcripts.append(transcript)
+
+            # Log the transcript
+            rr.log(
+                "text/transcript",
+                rr.TextDocument(
+                    "\n\n".join(captured_transcripts), media_type=rr.MediaType.MARKDOWN
+                ),
+            )
+
+            print(transcript.lstrip())
+
             transcription_queue.task_done()
 
     return zmq_socket, context, callback
@@ -108,5 +133,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    rr.init("retail-analytics-demo", spawn=True)
 
     asyncio.run(main(args.device, args.zmq_address))
