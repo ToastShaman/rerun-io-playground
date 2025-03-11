@@ -1,6 +1,10 @@
 import argparse
 import io
+import json
+import os
+import time
 import wave
+from dotenv import load_dotenv
 import zmq
 import pyaudio
 import asyncio
@@ -33,6 +37,8 @@ def capture_audio(audio_device_index, transcription_queue, loop):
         )
 
         while True:
+            print("Recording audio...")
+
             # Record audio
             frames = [
                 stream.read(CHUNK) for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS))
@@ -57,7 +63,7 @@ def capture_audio(audio_device_index, transcription_queue, loop):
 
             # Put the audio data into the transcription queue
             asyncio.run_coroutine_threadsafe(
-                transcription_queue.put_nowait(binary_audio_data), loop
+                transcription_queue.put(binary_audio_data), loop
             )
     finally:
         stream.stop_stream()
@@ -84,6 +90,8 @@ async def callback_factory(zmq_address, transcription_queue):
             # Wait for the reply
             results = zmq_socket.recv_json()
 
+            print(json.dumps(results, indent=2))
+
             # Log the transcript
             results = " ".join(
                 [item["text"] for item in results["transcription"]]
@@ -92,7 +100,8 @@ async def callback_factory(zmq_address, transcription_queue):
             # Add the transcript to the list
             captured_transcripts.append(results)
 
-            # Log the transcript
+            rr.set_time_seconds("timestamp", time.time(), recording=None)
+
             rr.log(
                 "text/transcript",
                 rr.TextDocument(
@@ -105,8 +114,8 @@ async def callback_factory(zmq_address, transcription_queue):
     return zmq_socket, context, callback
 
 
-async def main(device, zmq_address):
-    rr.init("retail-analytics-demo", spawn=True)
+async def main(device, zmq_address, recording_id):
+    rr.init("retail-analytics-demo", recording_id=recording_id, spawn=True)
 
     transcription_queue = asyncio.Queue()
 
@@ -137,7 +146,17 @@ if __name__ == "__main__":
         default="tcp://localhost:6666",
         help="ZeroMQ server address (e.g., tcp://localhost:6666)",
     )
+    parser.add_argument(
+        "--location",
+        type=str,
+        default="london-room1-audio-1",
+        help="Location of the audio source",
+    )
 
     args = parser.parse_args()
 
-    asyncio.run(main(args.device, args.zmq_address))
+    load_dotenv()
+
+    recording_id = os.getenv("RECORDING_ID")
+
+    asyncio.run(main(args.device, args.zmq_address, recording_id))

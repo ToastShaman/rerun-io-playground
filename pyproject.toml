@@ -5,7 +5,7 @@ description = "Default template for PDM package"
 authors = [
     {name = "Kevin Denver", email = "1027637+ToastShaman@users.noreply.github.com"},
 ]
-dependencies = ["opencv-python>=4.11.0.86", "numpy>=2.2.3", "pyaudio>=0.2.14", "rerun-sdk>=0.22.1", "ruff>=0.9.10", "ultralytics>=8.3.23", "pyzmq>=26.2.1", "asyncio>=3.4.3", "lapx>=0.5.11.post1"]
+dependencies = ["opencv-python>=4.11.0.86", "numpy>=2.2.3", "pyaudio>=0.2.14", "rerun-sdk>=0.22.1", "ruff>=0.9.10", "ultralytics>=8.3.23", "pyzmq>=26.2.1", "asyncio>=3.4.3", "lapx>=0.5.11.post1", "pyannote-audio>=3.3.2", "python-dotenv>=1.0.1"]
 requires-python = "==3.13.*"
 readme = "README.md"
 license = {text = "MIT"}

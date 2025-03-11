@@ -1,6 +1,7 @@
 import argparse
 import os
 import cv2
+from dotenv import load_dotenv
 import numpy as np
 import zmq
 from ultralytics import YOLO
@@ -103,5 +104,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    load_dotenv()
 
     main(args.zmq_address)

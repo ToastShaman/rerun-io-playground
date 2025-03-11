@@ -1,5 +1,8 @@
 import argparse
+import os
+import time
 import cv2
+from dotenv import load_dotenv
 import zmq
 import rerun as rr
 
@@ -65,10 +68,7 @@ def callback_factory(zmq_address):
     zmq_socket.connect(zmq_address)
 
     def callback(frame_time_ms, frame_nr, frame):
-        if frame_time_ms != 0:
-            rr.set_time_nanos("frame_time", int(frame_time_ms * 1_000_000))
-
-        rr.set_time_sequence("frame_nr", frame_nr)
+        rr.set_time_seconds("timestamp", time.time(), recording=None)
 
         ret, jpeg_frame = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
         if not ret:
@@ -128,8 +128,8 @@ def callback_factory(zmq_address):
     return zmq_socket, context, callback
 
 
-def main(device_idx, num_frames, zmq_address):
-    rr.init("retail-analytics-demo", spawn=True)
+def main(device_idx, num_frames, zmq_address, recording_id):
+    rr.init("retail-analytics-demo", recording_id=recording_id, spawn=True)
 
     zmq_socket, context, callback = callback_factory(zmq_address)
 
@@ -157,7 +157,17 @@ if __name__ == "__main__":
         default="tcp://localhost:5555",
         help="ZeroMQ server address (e.g., tcp://localhost:5555)",
     )
+    parser.add_argument(
+        "--location",
+        type=str,
+        default="london-room1-webcam-1",
+        help="Location of the video source",
+    )
 
     args = parser.parse_args()
 
-    main(args.device, args.num_frames, args.zmq_address)
+    load_dotenv()
+
+    recording_id = os.getenv("RECORDING_ID")
+
+    main(args.device, args.num_frames, args.zmq_address, recording_id)

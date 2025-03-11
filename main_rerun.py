@@ -1,16 +1,22 @@
 import argparse
+import os
+from dotenv import load_dotenv
 import rerun as rr
 import rerun.blueprint as rrb
 
 
-def main():
+if __name__ == "__main__":
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Retail Analytics Demo")
 
     rr.script_add_args(parser)
 
     args = parser.parse_args()
 
-    rr.init("retail-analytics-demo", spawn=True)
+    recording_id = os.getenv("RECORDING_ID")
+
+    rr.init("retail-analytics-demo", recording_id=recording_id, spawn=True)
 
     rr.script_setup(
         args,
@@ -25,7 +31,3 @@ def main():
     )
 
     rr.script_teardown(args)
-
-
-if __name__ == "__main__":
-    main()
